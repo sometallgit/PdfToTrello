@@ -46,10 +46,12 @@ class Page:
 		self.m_PageWidth = 0
 		self.m_PageHeight = 0
 		#get all comment data
-		numComments = len(page.Annots)
 		currentIndex = 0
 		self.m_PageWidth = int(float(page.CropBox[2]))
 		self.m_PageHeight = int(float(page.CropBox[3]))
+		if not page.Annots:
+			return
+		numComments = len(page.Annots)
 		while True:
 			self.m_Comments.append(Comment(page.Annots[currentIndex], self))
 			print('process comment')
