@@ -3,6 +3,8 @@ import os
 import sys
 import tempfile
 import subprocess
+import time
+from PIL import Image
 """
 pass in pdf file
 for every page in pdf
@@ -106,6 +108,7 @@ def extractPageImage(pageNum, _pdf):
 	runExternalProgramFromBatch(fullArgs)
 	annotateImage(pageNum, _pdf)
 
+#todo fix a lot of the hardcoding in here and expose a lot of it to config
 def annotateImage(pageNum, _pdf):
 	#resize page image
 	exePath = 'imagemagick\\convert '
@@ -120,8 +123,21 @@ def annotateImage(pageNum, _pdf):
 	while True:
 		if currentComment > len(_pdf.m_Pages[pageNum - 1].m_Comments):
 			break
+		#create an annotation number
+		exePath = 'imagemagick\\convert '
 		args = ' -background yellow -fill black -font impact -size 25x25 -gravity center label:' + str(currentComment) + ' tempworkingdir\\number.jpg'
 		fullArgs = exePath + args
+		runExternalProgramFromBatch(fullArgs)
+
+		#add the annotation number to the extracted image
+		exePath = 'imagemagick\\composite '
+		args = '-gravity SouthWest'
+		img = Image.open(pdfImage)
+		xOffset = _pdf.m_Pages[pageNum - 1].m_Comments[currentComment - 1].m_CommentRelativeLocationX * img.size[0]
+		yOffset = _pdf.m_Pages[pageNum - 1].m_Comments[currentComment - 1].m_CommentRelativeLocationY * img.size[1]
+		annotate = ' -geometry +' + str(int(xOffset)) + '+' + str(int(yOffset)) + ' '
+		numberImg = gProgramDirectory + '\\tempworkingdir\\number.jpg '
+		fullArgs = exePath + args + annotate + numberImg + pdfImage + pdfImage
 		runExternalProgramFromBatch(fullArgs)
 		#imagemagick\convert.exe -background yellow -fill black -font impact -size 25x25 -gravity center label:number output.jpg
 		#imagemagick\composite -gravity SouthWest number.jpg image.jpg image.jpg
