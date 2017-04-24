@@ -4,7 +4,9 @@ import sys
 import tempfile
 import subprocess
 import time
+import json
 from PIL import Image
+from trello import TrelloClient
 """
 pass in pdf file
 for every page in pdf
@@ -156,18 +158,34 @@ def runExternalProgramFromBatch(args):
 	#remove temp batch file
 	os.remove(tempBatFile.name)
 
+def getValueFromJSON(filename, category, value):
+    with open(gProgramDirectory + '\\' + filename) as data_file:
+        data = json.load(data_file)
+
+    return data[category][value]
 
 gProgramDirectory = os.path.dirname(sys.argv[0])
 gInputPdfFile = str(sys.argv[1])
 
 #TODO pdf will be passed in dynamically
 gPdfFile = pdfrw.PdfReader(gInputPdfFile)
-
+'''
 #collect all annotation data inside the supplied pdf
 gPdfData = PdfData(gPdfFile)
 annotatePages(gPdfData)
+'''
 
 
+client = TrelloClient(
+    api_key= getValueFromJSON('auth.json', 'Properties', 'api_key'),
+    api_secret=getValueFromJSON('auth.json', 'Properties', 'api_secret'),
+    token=getValueFromJSON('auth.json', 'Properties', 'token'),
+    token_secret=getValueFromJSON('auth.json', 'Properties', 'token_secret')
+)
 
-
-
+for org in client.list_organizations():
+	if org.name.startswith('test'):
+		print(org.name)
+		for board in org.all_boards():
+			if board.name.startswith('board'):	
+				print(board)
