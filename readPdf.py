@@ -13,7 +13,9 @@ coords = str(gPdfFile.pages[0].Annots[2].Rect)
 owner = str(gPdfFile.pages[0].Annots[2].T)
 owner = str(gPdfFile.pages[0].CropBox)
 """
-
+#todo handle spaces
+#todo delete temp working directory after upload completed
+#todo name temp pages the name of the input pdf and the page number
 
 class PdfData:
 
@@ -21,27 +23,26 @@ class PdfData:
 		self.m_Pages = []
 		self.processPages(pdfFile)
 	
+	#run through every page in the pdf and get information about the comments
 	def processPages(self, pdfFile):
 		for page in pdfFile.pages:
-			print('process page')
 			self.m_Pages.append(Page(page))			
 
 
 class Page:
 	def __init__(self, page):
 		self.m_Comments = []
-		self.m_PageWidth = 0
-		self.m_PageHeight = 0
-		#get all comment data
-		currentIndex = 0
 		self.m_PageWidth = int(float(page.CropBox[2]))
 		self.m_PageHeight = int(float(page.CropBox[3]))
+		currentIndex = 0
+		#abort if this page doesn't contain annotations
 		if not page.Annots:
 			return
+
 		numComments = len(page.Annots)
+		#process all the comments on the page
 		while True:
 			self.m_Comments.append(Comment(page.Annots[currentIndex], self))
-			print('process comment')
 			#we increase by two because pdf appears to store each annotation twice
 			currentIndex += 2
 			if currentIndex > numComments - 1:
@@ -49,44 +50,32 @@ class Page:
 
 
 class Comment:
-	'''
-	m_CommentString = ''
-	m_CommentLocationX = 0
-	m_CommentLocationY = 0 
-	m_CommentOwner = ''
-	m_CommentRelativeLocationX = 0
-	m_CommentRelativeLocationY = 0
-	'''
-
 	def __init__(self, annot, page):
 		self.m_CommentString = annot.Contents
 		self.m_CommentLocationX = int(float(annot.Rect[2]))
 		self.m_CommentLocationY = int(float(annot.Rect[3]))
 		self.m_CommentOwner = annot.T
+		#convert the absolute annotation position into a relative one
 		self.m_CommentRelativeLocationX = self.m_CommentLocationX / page.m_PageWidth
 		self.m_CommentRelativeLocationY = self.m_CommentLocationY / page.m_PageHeight 
-		print(self.m_CommentString)
-		print('Relative Location X: ' + str(self.m_CommentRelativeLocationX))
-		print('Relative Location Y: ' + str(self.m_CommentRelativeLocationY))
 
 
 def annotatePages(_pdf):
-
-	#for every page
-	pageNum = 1
+	#start at one to make it human readable
+	currentPageNum = 1
 	for page in _pdf.m_Pages:
 		#if the page has comments
 		if page.m_Comments:
 			#pull out the page image
-			extractPageImage(pageNum, _pdf)
+			processAndUploadPage(currentPageNum, _pdf)
 			
-		pageNum += 1
+		currentPageNum += 1
 
-def extractPageImage(pageNum, _pdf):
+def processAndUploadPage(pageNum, _pdf):
 	#make the output directory if it doesn't already exist
 	if not os.path.exists(gProgramDirectory + '\\tempworkingdir'):
 		os.mkdir(gProgramDirectory + '\\tempworkingdir')
-	#gswin32c -dNOPAUSE -dBATCH -sDEVICE=jpeg -dShowAnnots=false -dFirstPage=x -dLastPage=x -sOutputFile=x.xxx pdf.pdf
+
 	exePath = gProgramDirectory + '\\gs9.21\\bin\\gswin32c.exe' 
 	args = ' -dNOPAUSE -dBATCH -sDEVICE=jpeg -dShowAnnots=false '
 	pageNumber = '-dFirstPage=' + str(pageNum) + ' -dLastPage=' + str(pageNum) + ' '
@@ -104,6 +93,7 @@ def annotateImage(pageNum, _pdf):
 	#resize page image
 	exePath = 'imagemagick\\convert '
 	pdfImage = gProgramDirectory + '\\tempworkingdir\\temppage_' + str(pageNum) + '.jpg ' 
+	print(os.path.basename(pdfImage))
 	args = '-resize 1500x1500 '
 	fullArgs = exePath + pdfImage + args + pdfImage
 	runExternalProgramFromBatch(fullArgs)
@@ -200,7 +190,6 @@ gInputPdfFile = str(sys.argv[1])
 
 gTrelloClient = Trello()
 
-#TODO pdf will be passed in dynamically
 gPdfFile = pdfrw.PdfReader(gInputPdfFile)
 
 #collect all annotation data inside the supplied pdf
