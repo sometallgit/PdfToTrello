@@ -8,24 +8,9 @@ import json
 from PIL import Image
 from trello import TrelloClient
 """
-pass in pdf file
-for every page in pdf
-	run through every annotation
-		
-"""
-"""
 message = str(gPdfFile.pages[0].Annots[2].Contents)
-
-print (message)
-
 coords = str(gPdfFile.pages[0].Annots[2].Rect)
-
-print (coords)
-
 owner = str(gPdfFile.pages[0].Annots[2].T)
-
-print (owner)
-
 owner = str(gPdfFile.pages[0].CropBox)
 """
 
@@ -105,12 +90,14 @@ def extractPageImage(pageNum, _pdf):
 	exePath = gProgramDirectory + '\\gs9.21\\bin\\gswin32c.exe' 
 	args = ' -dNOPAUSE -dBATCH -sDEVICE=jpeg -dShowAnnots=false '
 	pageNumber = '-dFirstPage=' + str(pageNum) + ' -dLastPage=' + str(pageNum) + ' '
+	imageFile = gProgramDirectory + '\\tempworkingdir\\temppage_' + str(pageNum) + '.jpg'
 	outputFile = '-sOutputFile=' + gProgramDirectory + '\\tempworkingdir\\temppage_' + str(pageNum) + '.jpg '
 	inputFile =  gInputPdfFile
 
 	fullArgs = exePath + args + pageNumber + outputFile + inputFile
 	runExternalProgramFromBatch(fullArgs)
 	annotateImage(pageNum, _pdf)
+	uploadToTrello(imageFile, pageNum, _pdf)
 
 #todo fix a lot of the hardcoding in here and expose a lot of it to config
 def annotateImage(pageNum, _pdf):
@@ -147,6 +134,17 @@ def annotateImage(pageNum, _pdf):
 		#imagemagick\composite -gravity SouthWest number.jpg image.jpg image.jpg
 		currentComment += 1
 
+def uploadToTrello(imagePath, pageNum, _pdf):
+	checklistItems = []
+	index = 1
+	for comment in _pdf.m_Pages[pageNum - 1].m_Comments:
+		checklistItems.append(str(index) + '. ' + comment.m_CommentString)
+		index += 1
+	print(checklistItems)
+	fileAttachment = open(imagePath, 'rb')
+	gTrelloClient.addCard('pdf filename and page number', checklistItems, fileAttachment)
+
+
 def runExternalProgramFromBatch(args):
 	# Create temporary batch file to call ffmpeg
 	tempBatFile = tempfile.NamedTemporaryFile(suffix='.bat', delete=False)
@@ -164,28 +162,53 @@ def getValueFromJSON(filename, category, value):
 
     return data[category][value]
 
+class Trello:
+	def __init__(self):
+		self.client = TrelloClient(
+		    api_key= getValueFromJSON('auth.json', 'Properties', 'api_key'),
+		    api_secret=getValueFromJSON('auth.json', 'Properties', 'api_secret'),
+		    token=getValueFromJSON('auth.json', 'Properties', 'token'),
+		    token_secret=getValueFromJSON('auth.json', 'Properties', 'token_secret')
+		)
+		self.list = self.findList()
+
+	def findList(self):
+		self.teamName = input('Enter team name: ')
+		for org in self.client.list_organizations():
+			if org.name.startswith(self.teamName):
+				print('Found Team')
+				for board in org.all_boards():
+					if board.name.startswith('board'):	
+						print(board)
+						for list in board.all_lists():
+							if list.name.startswith('list'):
+								print(list)
+								return list
+
+		print('Team could not be found.')
+
+	def addCard(self, cardName, checklistItems, fileAttachment):
+		card = self.list.add_card(cardName)
+
+		
+		card.attach(file = fileAttachment, mimeType = 'image/jpeg', name = 'img.jpg')
+		card.add_checklist('Checklist', checklistItems)
+		
+
 gProgramDirectory = os.path.dirname(sys.argv[0])
 gInputPdfFile = str(sys.argv[1])
 
+gTrelloClient = Trello()
+
 #TODO pdf will be passed in dynamically
 gPdfFile = pdfrw.PdfReader(gInputPdfFile)
-'''
+
 #collect all annotation data inside the supplied pdf
 gPdfData = PdfData(gPdfFile)
 annotatePages(gPdfData)
-'''
 
 
-client = TrelloClient(
-    api_key= getValueFromJSON('auth.json', 'Properties', 'api_key'),
-    api_secret=getValueFromJSON('auth.json', 'Properties', 'api_secret'),
-    token=getValueFromJSON('auth.json', 'Properties', 'token'),
-    token_secret=getValueFromJSON('auth.json', 'Properties', 'token_secret')
-)
 
-for org in client.list_organizations():
-	if org.name.startswith('test'):
-		print(org.name)
-		for board in org.all_boards():
-			if board.name.startswith('board'):	
-				print(board)
+
+
+						
