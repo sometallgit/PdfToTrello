@@ -1,0 +1,23 @@
+%!
+% cidfmap generated automatically by mkcidfm.ps from fonts found in
+%   C:/WINDOWS/Fonts
+
+% Substitutions
+/SimSun << /SubfontID 0 /FileType /TrueType /CSI [(GB1) 2] /Path (C:/WINDOWS/Fonts/simsun.ttc) >> ;
+/MS-PGothic << /SubfontID 1 /FileType /TrueType /CSI [(Japan1) 3] /Path (C:/WINDOWS/Fonts/msgothic.ttc) >> ;
+/MS-UI-Gothic << /SubfontID 2 /FileType /TrueType /CSI [(Japan1) 3] /Path (C:/WINDOWS/Fonts/msgothic.ttc) >> ;
+/MalgunGothicBold << /SubfontID 0 /FileType /TrueType /CSI [(Korea1) 3] /Path (C:/WINDOWS/Fonts/malgunbd.ttf) >> ;
+/MalgunGothicRegular << /SubfontID 0 /FileType /TrueType /CSI [(Korea1) 3] /Path (C:/WINDOWS/Fonts/malgun.ttf) >> ;
+/MS-Gothic << /SubfontID 0 /FileType /TrueType /CSI [(Japan1) 3] /Path (C:/WINDOWS/Fonts/msgothic.ttc) >> ;
+/NSimSun << /SubfontID 1 /FileType /TrueType /CSI [(GB1) 2] /Path (C:/WINDOWS/Fonts/simsun.ttc) >> ;
+
+% Aliases
+/AdobeMyungjoStd-Medium /MalgunGothicRegular ;
+/AdobeSongStd-Light /SimSun ;
+/STSong-Light /SimSun ;
+/HeiseiKakuGo-W5 /MS-Gothic ;
+/GothicBBB-Medium /MS-Gothic ;
+/HYSMyeongJo-Medium /MalgunGothicRegular ;
+/HYRGoThic-Medium /MalgunGothicRegular ;
+/STFangsong-Light /SimSun ;
+/HYGoThic-Medium /MalgunGothicRegular ;
