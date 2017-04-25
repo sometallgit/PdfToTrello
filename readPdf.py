@@ -5,6 +5,7 @@ import tempfile
 import subprocess
 import time
 import json
+import shutil
 from PIL import Image
 from trello import TrelloClient
 """
@@ -13,7 +14,6 @@ coords = str(gPdfFile.pages[0].Annots[2].Rect)
 owner = str(gPdfFile.pages[0].Annots[2].T)
 owner = str(gPdfFile.pages[0].CropBox)
 """
-#todo handle spaces
 #todo delete temp working directory after upload completed
 
 class PdfData:
@@ -130,7 +130,6 @@ def uploadToTrello(imagePath, pageNum, _pdf):
 	for comment in _pdf.m_Pages[pageNum - 1].m_Comments:
 		checklistItems.append(str(index) + '. ' + comment.m_CommentString)
 		index += 1
-	print(checklistItems)
 	fileAttachment = open(imagePath, 'rb')
 	gTrelloClient.addCard(os.path.basename(gInputPdfFile) + '_' + str(pageNum), checklistItems, fileAttachment)
 
@@ -176,7 +175,9 @@ class Trello:
 								return list
 
 						print('List could not be found. Make sure list name exactly matches config.json')
+						break
 				print('Board could not be found. Make sure board name contains the correct spelling and case inside config.json')
+				break;
 		print('Team could not be found. Make sure spelling exactly matches what is listed on Trello')
 
 	def addCard(self, cardName, checklistItems, fileAttachment):
@@ -188,9 +189,6 @@ class Trello:
 gProgramDirectory = os.path.dirname(sys.argv[0])
 gInputPdfFile = str(sys.argv[1])
 
-print(gProgramDirectory)
-print(gInputPdfFile)
-#todo name temp pages the name of the input pdf and the page number
 gTrelloClient = Trello()
 
 gPdfFile = pdfrw.PdfReader(gInputPdfFile)
@@ -199,8 +197,9 @@ gPdfFile = pdfrw.PdfReader(gInputPdfFile)
 gPdfData = PdfData(gPdfFile)
 annotatePages(gPdfData)
 
+#delete temporary directory after we're done
+shutil.rmtree(gProgramDirectory + '\\tempworkingdir')
 
-
-
+print('\n\nDone!\n\n')
 
 						
