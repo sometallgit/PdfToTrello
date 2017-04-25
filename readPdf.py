@@ -15,7 +15,6 @@ owner = str(gPdfFile.pages[0].CropBox)
 """
 #todo handle spaces
 #todo delete temp working directory after upload completed
-#todo name temp pages the name of the input pdf and the page number
 
 class PdfData:
 
@@ -76,25 +75,26 @@ def processAndUploadPage(pageNum, _pdf):
 	if not os.path.exists(gProgramDirectory + '\\tempworkingdir'):
 		os.mkdir(gProgramDirectory + '\\tempworkingdir')
 
-	exePath = gProgramDirectory + '\\gs9.21\\bin\\gswin32c.exe' 
+	exePath = '"' + gProgramDirectory + '\\gs9.21\\bin\\gswin32c.exe' + '"' 
 	args = ' -dNOPAUSE -dBATCH -sDEVICE=jpeg -dShowAnnots=false '
+	pdfFileName = os.path.basename(gInputPdfFile)
 	pageNumber = '-dFirstPage=' + str(pageNum) + ' -dLastPage=' + str(pageNum) + ' '
-	imageFile = gProgramDirectory + '\\tempworkingdir\\temppage_' + str(pageNum) + '.jpg'
-	outputFile = '-sOutputFile=' + gProgramDirectory + '\\tempworkingdir\\temppage_' + str(pageNum) + '.jpg '
-	inputFile =  gInputPdfFile
+	imageFile = '"' + gProgramDirectory + '\\tempworkingdir\\' + pdfFileName + '_' + str(pageNum) + '.jpg' + '"'
+	outputFile = '-sOutputFile=' + '"' + gProgramDirectory + '\\tempworkingdir\\' + pdfFileName + '_' + str(pageNum) + '.jpg" '
+	inputFile =  '"' + gInputPdfFile + '"'
 
 	fullArgs = exePath + args + pageNumber + outputFile + inputFile
 	runExternalProgramFromBatch(fullArgs)
 	annotateImage(pageNum, _pdf)
-	uploadToTrello(imageFile, pageNum, _pdf)
+	uploadToTrello(gProgramDirectory + '\\tempworkingdir\\' + pdfFileName + '_' + str(pageNum) + '.jpg', pageNum, _pdf)
 
-#todo fix a lot of the hardcoding in here and expose a lot of it to config
 def annotateImage(pageNum, _pdf):
 	#resize page image
 	exePath = 'imagemagick\\convert '
-	pdfImage = gProgramDirectory + '\\tempworkingdir\\temppage_' + str(pageNum) + '.jpg ' 
-	print(os.path.basename(pdfImage))
-	args = '-resize 1500x1500 '
+	pdfFileName = os.path.basename(gInputPdfFile)
+	pdfImage = '"' + gProgramDirectory + '\\tempworkingdir\\' + pdfFileName + '_' + str(pageNum) + '.jpg" ' 
+	imageMaxBoundsSize = getValueFromJSON('Config.json', 'Properties', 'MaxExtractedImageSize')
+	args = '-resize ' + imageMaxBoundsSize + 'x' + imageMaxBoundsSize + ' '
 	fullArgs = exePath + pdfImage + args + pdfImage
 	runExternalProgramFromBatch(fullArgs)
 
@@ -106,22 +106,22 @@ def annotateImage(pageNum, _pdf):
 			break
 		#create an annotation number
 		exePath = 'imagemagick\\convert '
-		args = ' -background yellow -fill black -font impact -size 25x25 -gravity center label:' + str(currentComment) + ' tempworkingdir\\number.jpg'
+		argAnnotSize = getValueFromJSON('Config.json', 'Properties', 'AnnotationSize')
+		argAnnotSize = '-size ' + argAnnotSize + 'x' + argAnnotSize
+		args = ' -background yellow -fill black -font impact ' + argAnnotSize + ' -gravity center label:' + str(currentComment) + ' tempworkingdir\\number.jpg'
 		fullArgs = exePath + args
 		runExternalProgramFromBatch(fullArgs)
 
 		#add the annotation number to the extracted image
 		exePath = 'imagemagick\\composite '
 		args = '-gravity SouthWest'
-		img = Image.open(pdfImage)
+		img = Image.open(gProgramDirectory + '\\tempworkingdir\\' + pdfFileName + '_' + str(pageNum) + '.jpg')
 		xOffset = _pdf.m_Pages[pageNum - 1].m_Comments[currentComment - 1].m_CommentRelativeLocationX * img.size[0]
 		yOffset = _pdf.m_Pages[pageNum - 1].m_Comments[currentComment - 1].m_CommentRelativeLocationY * img.size[1]
 		annotate = ' -geometry +' + str(int(xOffset)) + '+' + str(int(yOffset)) + ' '
-		numberImg = gProgramDirectory + '\\tempworkingdir\\number.jpg '
+		numberImg = '"' + gProgramDirectory + '\\tempworkingdir\\number.jpg" '
 		fullArgs = exePath + args + annotate + numberImg + pdfImage + pdfImage
 		runExternalProgramFromBatch(fullArgs)
-		#imagemagick\convert.exe -background yellow -fill black -font impact -size 25x25 -gravity center label:number output.jpg
-		#imagemagick\composite -gravity SouthWest number.jpg image.jpg image.jpg
 		currentComment += 1
 
 def uploadToTrello(imagePath, pageNum, _pdf):
@@ -132,7 +132,7 @@ def uploadToTrello(imagePath, pageNum, _pdf):
 		index += 1
 	print(checklistItems)
 	fileAttachment = open(imagePath, 'rb')
-	gTrelloClient.addCard('pdf filename and page number', checklistItems, fileAttachment)
+	gTrelloClient.addCard(os.path.basename(gInputPdfFile) + '_' + str(pageNum), checklistItems, fileAttachment)
 
 
 def runExternalProgramFromBatch(args):
@@ -168,26 +168,29 @@ class Trello:
 			if org.name.startswith(self.teamName):
 				print('Found Team')
 				for board in org.all_boards():
-					if board.name.startswith('board'):	
-						print(board)
+					if getValueFromJSON('Config.json', 'Properties', 'BoardName') in board.name:	
+						print('Found board')
 						for list in board.all_lists():
-							if list.name.startswith('list'):
-								print(list)
+							if getValueFromJSON('Config.json', 'Properties', 'ListName') in list.name:	
+								print('Found list')
 								return list
 
-		print('Team could not be found.')
+						print('List could not be found. Make sure list name exactly matches config.json')
+				print('Board could not be found. Make sure board name contains the correct spelling and case inside config.json')
+		print('Team could not be found. Make sure spelling exactly matches what is listed on Trello')
 
 	def addCard(self, cardName, checklistItems, fileAttachment):
 		card = self.list.add_card(cardName)
-
-		
-		card.attach(file = fileAttachment, mimeType = 'image/jpeg', name = 'img.jpg')
+		card.attach(file = fileAttachment, mimeType = 'image/jpeg', name = cardName + '.jpg')
 		card.add_checklist('Checklist', checklistItems)
 		
 
 gProgramDirectory = os.path.dirname(sys.argv[0])
 gInputPdfFile = str(sys.argv[1])
 
+print(gProgramDirectory)
+print(gInputPdfFile)
+#todo name temp pages the name of the input pdf and the page number
 gTrelloClient = Trello()
 
 gPdfFile = pdfrw.PdfReader(gInputPdfFile)
