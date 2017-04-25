@@ -1,0 +1,10 @@
+{
+    "Properties": 
+    {
+        "MaxExtractedImageSize"	: "1500",
+        "AnnotationSize" : "20",
+        "BoardName" : "board",
+        "ListName" : "list"
+
+    }
+}
