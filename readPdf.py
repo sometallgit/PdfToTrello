@@ -176,9 +176,12 @@ class Trello:
 
 						print('List could not be found. Make sure list name exactly matches config.json')
 						break
+						exit()
 				print('Board could not be found. Make sure board name contains the correct spelling and case inside config.json')
 				break;
+				exit()
 		print('Team could not be found. Make sure spelling exactly matches what is listed on Trello')
+		exit()
 
 	def addCard(self, cardName, checklistItems, fileAttachment):
 		card = self.list.add_card(cardName)
