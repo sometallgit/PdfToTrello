@@ -163,24 +163,28 @@ class Trello:
 
 	def findList(self):
 		self.teamName = input('Enter team name: ')
-		for org in self.client.list_organizations():
-			if org.name.startswith(self.teamName):
-				print('Found Team')
-				for board in org.all_boards():
-					if getValueFromJSON('Config.json', 'Properties', 'BoardName') in board.name:	
-						print('Found board')
-						for list in board.all_lists():
-							if getValueFromJSON('Config.json', 'Properties', 'ListName') in list.name:	
-								print('Found list')
-								return list
+		try:
+			for org in self.client.list_organizations():
+				if org.name.startswith(self.teamName):
+					print('Found Team')
+					for board in org.all_boards():
+						if getValueFromJSON('Config.json', 'Properties', 'BoardName') in board.name:	
+							print('Found board')
+							for list in board.all_lists():
+								if getValueFromJSON('Config.json', 'Properties', 'ListName') in list.name:	
+									print('Found list')
+									return list
 
-						print('List could not be found. Make sure list name exactly matches config.json')
-						break
-						exit()
-				print('Board could not be found. Make sure board name contains the correct spelling and case inside config.json')
-				break;
-				exit()
-		print('Team could not be found. Make sure spelling exactly matches what is listed on Trello')
+							print('List could not be found. Make sure list name exactly matches config.json')
+							break
+							exit()
+					print('Board could not be found. Make sure board name contains the correct spelling and case inside config.json')
+					break;
+					exit()
+			print('Team could not be found. Make sure spelling exactly matches what is listed on Trello')
+			
+		except Exception as e:
+			print('Trello API raised error: {}. Do you have your auth token and api key setup in auth.json?'.format(e))
 		exit()
 
 	def addCard(self, cardName, checklistItems, fileAttachment):
