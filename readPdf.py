@@ -128,7 +128,10 @@ def uploadToTrello(imagePath, pageNum, _pdf):
 	checklistItems = []
 	index = 1
 	for comment in _pdf.m_Pages[pageNum - 1].m_Comments:
-		checklistItems.append(str(index) + '. ' + comment.m_CommentString)
+		commentStr = ''
+		if comment.m_CommentString is not None:
+			commentStr = comment.m_CommentString
+		checklistItems.append(str(index) + '. ' + commentStr)
 		index += 1
 	fileAttachment = open(imagePath, 'rb')
 	gTrelloClient.addCard(os.path.basename(gInputPdfFile) + '_' + str(pageNum), checklistItems, fileAttachment)
